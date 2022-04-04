@@ -5,8 +5,8 @@
 
 #define SS_PIN 10
 #define RST_PIN 9
-#define SIZE 1
-String acceptCode[] = {"41 A8 8E 1C"};
+#define SIZE 2
+String acceptCode[] = {"41 A8 8E 1C", "91 13 E5 1B"};
 MFRC522 mfrc522(SS_PIN, RST_PIN);
 Servo myservo;
 bool status = false;
@@ -14,8 +14,8 @@ bool status = false;
 void setup()
 {
   Serial.begin(9600);
-  SPI.begin();        // Initiate  SPI bus
-  mfrc522.PCD_Init(); // Initiate MFRC522
+  SPI.begin();
+  mfrc522.PCD_Init();
   Serial.println("\nApproximate your card to the reader...");
 
   myservo.attach(3);
@@ -26,12 +26,10 @@ void setup()
 }
 void loop()
 {
-  // Look for new cards
   if (!mfrc522.PICC_IsNewCardPresent())
-  {
+  {    
     return;
   }
-  // Select one of the cards
   if (!mfrc522.PICC_ReadCardSerial())
   {
     return;
