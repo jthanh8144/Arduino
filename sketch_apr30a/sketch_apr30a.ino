@@ -29,6 +29,16 @@ void send() {
   server.send(200, "application/json", json);
 }
 
+void receive() {
+  if (server.arg("percent") == "") {
+    Serial.println("receive error");
+  } else {
+    Serial.print("Percent is: ");
+    Serial.println(server.arg("percent"));
+  }
+  server.send(200, "application/json", "{\"status\": \"true\"}");
+}
+
 void setup() {
   Serial.begin(9600);
   Serial.println();
@@ -47,6 +57,7 @@ void setup() {
   server.on("/up", bat);
   server.on("/down", tat);
   server.on("/send", send);
+  server.on("/receive", receive);
   server.begin();
 }
 
