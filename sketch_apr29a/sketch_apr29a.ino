@@ -2,28 +2,37 @@
 #include <nRF24L01.h>
 #include <RF24.h>
 
-//Khởi tạo RF24
-RF24 radio(9, 8);  // CE, CSN
-
-//Đặt địa chỉ phát.
+RF24 radio(9, 8);
+int ledPin = 7;
 const byte address[6] = "00001";
-const int bientro = A0; // chọn chân biến trở là A0
-int msg[3];// Mảng lưu giá trị
+
+void send() {
+  delay(200);
+  Serial.println("send");
+  int value = 86;
+  radio.write(&value, sizeof(value));
+  digitalWrite(ledPin, HIGH);
+  delay(100);
+  digitalWrite(ledPin, LOW);
+}
 
 void setup()
 {
   while (!Serial);
     Serial.begin(9600);
     
- radio.begin();
- radio.openWritingPipe(address);
- radio.stopListening();
+  radio.begin();
+  radio.openWritingPipe(address);
+  radio.stopListening();
+
+  pinMode(2, INPUT_PULLUP);
+  attachInterrupt(0, send, RISING);
+
+  pinMode(7, OUTPUT);
+  digitalWrite(ledPin, LOW);
+  Serial.println("setup done");
 }
 void loop()
 {
-  int value = 86;
-  msg[0] = value;
-  radio.write(&value, sizeof(value));
-  Serial.println(*msg); // xuất nội dung gửi đi lên Serial
-  delay(1000);
+  
 }
