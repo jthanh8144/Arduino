@@ -3,13 +3,15 @@
 #include <RF24.h>
 
 RF24 radio(9, 8);
+int btnPin = 2;
 int ledPin = 7;
+
 const byte address[6] = "00001";
 
 void send() {
   delay(200);
   Serial.println("send");
-  int value = 86;
+  int value = 4;
   radio.write(&value, sizeof(value));
   digitalWrite(ledPin, HIGH);
   delay(100);
@@ -25,13 +27,14 @@ void setup()
   radio.openWritingPipe(address);
   radio.stopListening();
 
-  pinMode(2, INPUT_PULLUP);
+  pinMode(btnPin, INPUT_PULLUP);
   attachInterrupt(0, send, RISING);
 
-  pinMode(7, OUTPUT);
+  pinMode(ledPin, OUTPUT);
   digitalWrite(ledPin, LOW);
   Serial.println("setup done");
 }
+
 void loop()
 {
   
