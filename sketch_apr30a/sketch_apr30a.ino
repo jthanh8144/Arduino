@@ -13,6 +13,8 @@ void home() {
 }
 
 void bat() {
+  server.sendHeader("Location", "/", true);
+  server.send(303);
   server.send(200, "application/json", "{\"status\": \"true\"}");
   Serial.println("bat");
 }

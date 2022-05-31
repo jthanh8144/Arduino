@@ -7,7 +7,7 @@ Servo servo;
 
 RF24 radio(9, 8);
 int sensorPin = 2;
-int btntPin = 3;
+int btnPin = 3;
 int servoPin = 6;
 
 const byte address[6] = "00001";
@@ -35,7 +35,7 @@ void setup()
 
   pinMode(sensorPin, INPUT);
 
-  pinMode(btntPin, INPUT_PULLUP);
+  pinMode(btnPin, INPUT_PULLUP);
   attachInterrupt(1, handle, RISING);
   Serial.println("setup done");
 }
@@ -45,6 +45,7 @@ void loop()
   if (autoClose == true) {
     // Serial.println(digitalRead(sensorPin));
     if (digitalRead(sensorPin) == 0 && status == true) {
+      Serial.println(digitalRead(sensorPin));
       for (int i = 0; i < 5; i++) {
         delay(1000);
         if (digitalRead(sensorPin) != 0) {
