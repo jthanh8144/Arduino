@@ -3,22 +3,12 @@
 #include <ESP8266WebServer.h>
 #include <SoftwareSerial.h>
 
-int ENA = 14; // D5
-int IN1 = 15; // D10
-int IN2 = 13; // D7
-int sensor = 12; // D6
+SoftwareSerial s(D6, D5);
 
-volatile unsigned int pulses;
-float rpm;
-unsigned long timeOld;
-int holesDisc = 1;
-
-void ICACHE_RAM_ATTR counter();
-
-// const char* ssid = "Really?";
-// const char* password = "1toi9boso8";
-const char* ssid = "jThanh8144";
-const char* password = "6789012345";
+const char* ssid = "Really?";
+const char* password = "1toi9boso8";
+// const char* ssid = "jThanh8144";
+// const char* password = "6789012345";
 ESP8266WebServer server(80);
 
 void home() {
@@ -26,18 +16,21 @@ void home() {
 }
 
 void left() {
+  s.write(300);
   server.send(200, "application/json", "{\"status\": \"true\"}");
-
   Serial.println("left");
 }
 
 void right() {
+  s.write(400);
   server.send(200, "application/json", "{\"status\": \"true\"}");
-
   Serial.println("right");
 }
 
 void getSpeed() {
+  s.write(500);
+  delay(2000);
+  int rpm = s.read();
   String json = "{\"speed\": \"" + String(rpm) + "\"}";
   server.send(200, "application/json", json);
 }
@@ -47,29 +40,14 @@ void control() {
     Serial.println("receive error");
   } else {
     int speed = map(server.arg("percent").toInt(), 0, 100, 0, 255);
-    // Serial.print("Speed: ");
-    // Serial.println(speed);
-    if (speed == 0) {
-      digitalWrite(IN1, LOW);
-      digitalWrite(IN2, LOW);
-    } else {
-      digitalWrite(IN1, HIGH);
-      digitalWrite(IN2, LOW);
-      analogWrite(ENA, speed);
-      Serial.print("Speed: ");
-      Serial.println(speed);
-    }
+    s.write(speed);
   }
   server.send(200, "application/json", "{\"status\": \"true\"}");
 }
 
 void setup() {
   Serial.begin(9600);
-  Serial.println();
-
-  pinMode(ENA, OUTPUT);
-  pinMode(IN1, OUTPUT);
-  pinMode(IN2, OUTPUT);
+  s.begin(115200);
 
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED)
@@ -88,29 +66,8 @@ void setup() {
   server.on("/speed", getSpeed);
   server.on("/control", control);
   server.begin();
-
-  pinMode(sensor, INPUT);
-  pulses = 0;
-  timeOld = 0;
-  attachInterrupt(digitalPinToInterrupt(sensor), counter, FALLING);
 }
 
 void loop() {
   server.handleClient();
-
-  if (millis() - timeOld >= 1000)
-  {
-    detachInterrupt(digitalPinToInterrupt(sensor));
-    // rpm = (pulses * 60) / (holesDisc);
-    rpm = pulses;
-    Serial.println(rpm);
-    
-    timeOld = millis();
-    pulses = 0;
-    attachInterrupt(digitalPinToInterrupt(sensor), counter, FALLING);  
-  }
-}
-
-void ICACHE_RAM_ATTR counter() {
-  pulses++;
 }
