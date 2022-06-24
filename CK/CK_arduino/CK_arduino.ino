@@ -1,11 +1,14 @@
 #include <SoftwareSerial.h>
+#include <Servo.h> 
 
 SoftwareSerial s(5,6);
+Servo servo;
 
-int ENA = 14; // D5
-int IN1 = 15; // D10
-int IN2 = 13; // D7
+int IN1 = 8;
+int IN2 = 9;
+int ENA = 10;
 int sensor = 2;
+int servoPin = 11;
 
 const byte PulsesPerRevolution = 2;
 const unsigned long ZeroTimeout = 100000;
@@ -22,23 +25,26 @@ unsigned long LastTimeCycleMeasure = LastTimeWeMeasured;
 unsigned long CurrentMicros = micros();
 unsigned int AmountOfReadings = 1;
 unsigned int ZeroDebouncingExtra;
-// unsigned long readings[numReadings];
-// unsigned long readIndex;  
-// unsigned long total; 
-// unsigned long average;
+unsigned long readings[numReadings];
+unsigned long readIndex;  
+unsigned long total; 
+unsigned long average;
 
 int serialValue;
 
 void left() {
   Serial.println("Turn left");
+  servo.write(0);
 }
 
 void right() {
   Serial.println("Turn right");
+  servo.write(180);
 }
 
-void control(int speed) {
-  Serial.print("Speed: ");
+void control(int percent) {
+  int speed = map(percent, 0, 100, 0, 255);
+  Serial.print("Speed ar: ");
   Serial.println(speed);
   if (speed == 0) {
     digitalWrite(IN1, LOW);
@@ -61,7 +67,11 @@ void setup() {
 
   pinMode(sensor, INPUT);
   attachInterrupt(digitalPinToInterrupt(sensor), pulseEvent, RISING);
-  delay(1000);
+  
+  servo.attach(servoPin);
+  servo.write(90);
+
+  Serial.println("setup done");
 }
 
 void loop() {
@@ -81,32 +91,31 @@ void loop() {
 
   RPM = FrequencyRaw / PulsesPerRevolution * 60;
   RPM = RPM / 10000;
-  // total = total - readings[readIndex];
-  // readings[readIndex] = RPM;
-  // total = total + readings[readIndex];
-  // readIndex = readIndex + 1;
+  total = total - readings[readIndex];
+  readings[readIndex] = RPM;
+  total = total + readings[readIndex];
+  readIndex = readIndex + 1;
 
-  // if (readIndex >= numReadings) {
-  //   readIndex = 0;
-  // }
-  // average = total / numReadings;
-
-  // Serial.print("\tRPM: ");
-  // Serial.println(RPM);
+  if (readIndex >= numReadings) {
+    readIndex = 0;
+  }
+  average = total / numReadings;
 
   if(s.available() > 0) {
     serialValue = s.read();
-    if (serialValue >= 0 && serialValue <= 255) {
+    if (serialValue >= 0 && serialValue <= 100) {
       control(serialValue);
     } else {
       switch (serialValue) {
-        case 300:
+        case 110:
           left();
           break;
-        case 400:
+        case 120:
           right();
           break;
-        case 500:
+        case 130:
+          Serial.print("\tRPM: ");
+          Serial.println(RPM);
           s.write(RPM);
           break;
         default:
