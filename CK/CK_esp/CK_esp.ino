@@ -3,15 +3,8 @@
 #include <ESP8266WebServer.h>
 #include <SoftwareSerial.h>
 
-#include <cstdlib>
-#include <ctime>
-
 SoftwareSerial s(D6, D5);
 
-// const char* ssid = "Really?";
-// const char* password = "1toi9boso8";
-const char* ssid = "jThanh8144";
-const char* password = "6789012345";
 ESP8266WebServer server(80);
 
 void home() {
@@ -32,11 +25,12 @@ void right() {
 
 void getSpeed() {
   s.write(130);
-  int rpm = s.read();
-  // srand(time(NULL));
-	// int rpm = rand();
+  int speed = map(s.read(), 0, 255, 0, 10000);
+  if (speed < 0) {
+    speed = 0;
+  }
   Serial.println("speed");
-  String json = "{\"speed\": \"" + String(rpm) + "\"}";
+  String json = "{\"speed\": \"" + String(speed) + "\"}";
   server.send(200, "application/json", json);
 }
 
@@ -53,20 +47,11 @@ void control() {
 void setup() {
   Serial.begin(9600);
   s.begin(115200);
-
-  // WiFi.begin(ssid, password);
-  // while (WiFi.status() != WL_CONNECTED)
-  // {
-  //   delay(500);
-  //   Serial.print(".");
-  // }
+  
   WiFi.softAP("boat");
   Serial.print("Soft-AP IP address = ");
   Serial.println(WiFi.softAPIP());
   Serial.println();
-  // Serial.print("Connected, IP address: ");
-  // Serial.println(WiFi.localIP());
-  Serial.println("setup done");
 
   server.on("/", home);
   server.on("/left", left);
@@ -74,6 +59,8 @@ void setup() {
   server.on("/speed", getSpeed);
   server.on("/control", control);
   server.begin();
+  
+  Serial.println("setup done");
 }
 
 void loop() {

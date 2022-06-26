@@ -9,42 +9,45 @@ int IN2 = 9;
 int ENA = 10;
 int sensor = 2;
 int servoPin = 11;
+int startPos = 80;
+int leftPos = 170;
+int rightPos = 10;
 
-const byte PulsesPerRevolution = 2;
-const unsigned long ZeroTimeout = 100000;
+const byte pulsesPerRevolution = 2;
+const unsigned long zeroTimeout = 100000;
 const byte numReadings = 2;
-volatile unsigned long LastTimeWeMeasured;
-volatile unsigned long PeriodBetweenPulses = ZeroTimeout + 1000;
-volatile unsigned long PeriodAverage = ZeroTimeout + 1000;
-unsigned long FrequencyRaw;
-unsigned long FrequencyReal;
+volatile unsigned long lastTimeWeMeasured;
+volatile unsigned long periodBetweenPulses = zeroTimeout + 1000;
+volatile unsigned long periodAverage = zeroTimeout + 1000;
+unsigned long frequencyRaw;
+unsigned long frequencyReal;
 unsigned long RPM;
-unsigned int PulseCounter = 1;
-unsigned long PeriodSum;
-unsigned long LastTimeCycleMeasure = LastTimeWeMeasured;
-unsigned long CurrentMicros = micros();
-unsigned int AmountOfReadings = 1;
-unsigned int ZeroDebouncingExtra;
-unsigned long readings[numReadings];
-unsigned long readIndex;  
-unsigned long total; 
-unsigned long average;
+unsigned int pulseCounter = 1;
+unsigned long periodSum;
+unsigned long lastTimeCycleMeasure = lastTimeWeMeasured;
+unsigned long currentMicros = micros();
+unsigned int amountOfReadings = 1;
+unsigned int zeroDebouncingExtra;
 
 int serialValue;
 
 void left() {
   Serial.println("Turn left");
-  servo.write(0);
+  servo.write(leftPos);
+  delay(500);
+  servo.write(startPos);
 }
 
 void right() {
   Serial.println("Turn right");
-  servo.write(180);
+  servo.write(rightPos);
+  delay(500);
+  servo.write(startPos);
 }
 
 void control(int percent) {
   int speed = map(percent, 0, 100, 0, 255);
-  Serial.print("Speed ar: ");
+  Serial.print("Speed in arduino: ");
   Serial.println(speed);
   if (speed == 0) {
     digitalWrite(IN1, LOW);
@@ -52,6 +55,7 @@ void control(int percent) {
   } else {
     digitalWrite(IN1, HIGH);
     digitalWrite(IN2, LOW);
+    Serial.println(speed);
     analogWrite(ENA, speed);
   }
 }
@@ -64,42 +68,35 @@ void setup() {
   pinMode(ENA, OUTPUT);
   pinMode(IN1, OUTPUT);
   pinMode(IN2, OUTPUT);
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
 
   pinMode(sensor, INPUT);
   attachInterrupt(digitalPinToInterrupt(sensor), pulseEvent, RISING);
   
   servo.attach(servoPin);
-  servo.write(90);
+  servo.write(startPos);
 
   Serial.println("setup done");
 }
 
 void loop() {
-  LastTimeCycleMeasure = LastTimeWeMeasured;
-  CurrentMicros = micros();
-  if (CurrentMicros < LastTimeCycleMeasure) {
-    LastTimeCycleMeasure = CurrentMicros;
+  lastTimeCycleMeasure = lastTimeWeMeasured;
+  currentMicros = micros();
+  if (currentMicros < lastTimeCycleMeasure) {
+    lastTimeCycleMeasure = currentMicros;
   }
-  FrequencyRaw = 10000000000 / PeriodAverage;
-  if (PeriodBetweenPulses > ZeroTimeout - ZeroDebouncingExtra || CurrentMicros - LastTimeCycleMeasure > ZeroTimeout - ZeroDebouncingExtra) {
-    FrequencyRaw = 0;  // Set frequency as 0.
-    ZeroDebouncingExtra = 2000;
+  frequencyRaw = 10000000000 / periodAverage;
+  if (periodBetweenPulses > zeroTimeout - zeroDebouncingExtra || currentMicros - lastTimeCycleMeasure > zeroTimeout - zeroDebouncingExtra) {
+    frequencyRaw = 0;
+    zeroDebouncingExtra = 2000;
   } else {
-    ZeroDebouncingExtra = 0;
+    zeroDebouncingExtra = 0;
   }
-  FrequencyReal = FrequencyRaw / 10000;
+  frequencyReal = frequencyRaw / 10000;
 
-  RPM = FrequencyRaw / PulsesPerRevolution * 60;
+  RPM = frequencyRaw / pulsesPerRevolution * 60;
   RPM = RPM / 10000;
-  total = total - readings[readIndex];
-  readings[readIndex] = RPM;
-  total = total + readings[readIndex];
-  readIndex = readIndex + 1;
-
-  if (readIndex >= numReadings) {
-    readIndex = 0;
-  }
-  average = total / numReadings;
 
   if(s.available() > 0) {
     serialValue = s.read();
@@ -114,9 +111,12 @@ void loop() {
           right();
           break;
         case 130:
+          int rpm = map(RPM, 0, 10000, 0, 255);
+          s.write(rpm);
           Serial.print("\tRPM: ");
-          Serial.println(RPM);
-          s.write(RPM);
+          Serial.print(RPM);
+          Serial.print(" rpm send: ");
+          Serial.println(rpm);
           break;
         default:
           break;
@@ -126,18 +126,18 @@ void loop() {
 }
 
 void pulseEvent() {
-  PeriodBetweenPulses = micros() - LastTimeWeMeasured;
-  LastTimeWeMeasured = micros();
-  if (PulseCounter >= AmountOfReadings)  {
-    PeriodAverage = PeriodSum / AmountOfReadings;
-    PulseCounter = 1;
-    PeriodSum = PeriodBetweenPulses;
+  periodBetweenPulses = micros() - lastTimeWeMeasured;
+  lastTimeWeMeasured = micros();
+  if (pulseCounter >= amountOfReadings)  {
+    periodAverage = periodSum / amountOfReadings;
+    pulseCounter = 1;
+    periodSum = periodBetweenPulses;
 
-    int RemapedAmountOfReadings = map(PeriodBetweenPulses, 40000, 5000, 1, 10);
-    RemapedAmountOfReadings = constrain(RemapedAmountOfReadings, 1, 10);
-    AmountOfReadings = RemapedAmountOfReadings;
+    int remapedAmountOfReadings = map(periodBetweenPulses, 40000, 5000, 1, 10);
+    remapedAmountOfReadings = constrain(remapedAmountOfReadings, 1, 10);
+    amountOfReadings = remapedAmountOfReadings;
   } else {
-    PulseCounter++;
-    PeriodSum = PeriodSum + PeriodBetweenPulses;
+    pulseCounter++;
+    periodSum = periodSum + periodBetweenPulses;
   }
 }
