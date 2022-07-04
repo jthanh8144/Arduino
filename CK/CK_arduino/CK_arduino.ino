@@ -20,7 +20,6 @@ volatile unsigned long lastTimeWeMeasured;
 volatile unsigned long periodBetweenPulses = zeroTimeout + 1000;
 volatile unsigned long periodAverage = zeroTimeout + 1000;
 unsigned long frequencyRaw;
-unsigned long frequencyReal;
 unsigned long RPM;
 unsigned int pulseCounter = 1;
 unsigned long periodSum;
@@ -86,17 +85,15 @@ void loop() {
   if (currentMicros < lastTimeCycleMeasure) {
     lastTimeCycleMeasure = currentMicros;
   }
-  frequencyRaw = 10000000000 / periodAverage;
+  frequencyRaw = 1000000 / periodAverage;
   if (periodBetweenPulses > zeroTimeout - zeroDebouncingExtra || currentMicros - lastTimeCycleMeasure > zeroTimeout - zeroDebouncingExtra) {
     frequencyRaw = 0;
     zeroDebouncingExtra = 2000;
   } else {
     zeroDebouncingExtra = 0;
   }
-  frequencyReal = frequencyRaw / 10000;
 
   RPM = frequencyRaw / pulsesPerRevolution * 60;
-  RPM = RPM / 10000;
 
   if(s.available() > 0) {
     serialValue = s.read();
